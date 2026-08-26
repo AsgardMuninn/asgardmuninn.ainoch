@@ -71,4 +71,23 @@ assert(KeyboardSpec.moveHighlightUp(nil) == 1, "nil ↑ → opción 1")
 assert(KeyboardSpec.moveHighlightUp(2) == 1, "2 ↑ → 1")
 assert(KeyboardSpec.moveHighlightUp(1) == 1, "1 ↑ → 1 (clamp)")
 
-print("PASS: keyboard-spec 8/8")
+// TEST 9: (KEYBOARD_SPEC v7) atajo Cmd+A en modo texto → select all del field
+// editor. La decisión es PURA e independiente del layout: usa el CHAR lógico
+// (charactersIgnoringModifiers), NO el keyCode físico 0 (que solo es 'A' en
+// teclados ANSI — se rompe en Dvorak/ISO con otras teclas en esa posición).
+assert(KeyboardSpec.isCmdASelectAll(char: "a", commandDown: true, isTextInputActive: true),
+       "Cmd+A en modo texto → select all")
+assert(KeyboardSpec.isCmdASelectAll(char: "A", commandDown: true, isTextInputActive: true),
+       "Cmd+Shift+A → select all igual (la A lógica no distingue mayúscula)")
+assert(!KeyboardSpec.isCmdASelectAll(char: "a", commandDown: false, isTextInputActive: true),
+       "sin Cmd → no select all (la tecla pasa al campo)")
+assert(!KeyboardSpec.isCmdASelectAll(char: "a", commandDown: true, isTextInputActive: false),
+       "sin modo texto → no select all (no roba teclas)")
+assert(!KeyboardSpec.isCmdASelectAll(char: "é", commandDown: true, isTextInputActive: true),
+       "Cmd+é (char distinto) → no select all")
+assert(!KeyboardSpec.isCmdASelectAll(char: "", commandDown: true, isTextInputActive: true),
+       "Cmd sola (char vacío) → no select all")
+assert(!KeyboardSpec.isCmdASelectAll(char: "1", commandDown: true, isTextInputActive: true),
+       "Cmd+1 → no select all")
+
+print("PASS: keyboard-spec 9/9")

@@ -666,11 +666,15 @@ func applicationDidFinishLaunching(_ notification: Notification) {
     keyboardMon = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
         guard let self = self else { return event }
         let t0 = CFAbsoluteTimeGetCurrent()
-        // v6c: Cmd+A en modo texto → selectAll del field editor (la app es
-        // .accessory sin menú Edit; el key equivalent no se enruta por el sistema).
-        if self.model.textInputActive,
-           event.modifierFlags.contains(.command),
-           event.keyCode == 0 {   // 0 = tecla A
+        // v6c + v7 (KEYBOARD_SPEC): Cmd+A en modo texto → selectAll del field
+        // editor (la app es .accessory sin menú Edit; el key equivalent no se
+        // enruta por el sistema). La decisión es PURA (KeyboardSpec.isCmdASelectAll)
+        // y usa el char lógico (charactersIgnoringModifiers) en vez del keyCode
+        // físico 0 → no depende del layout de teclado (ANSI/ISO/Dvorak).
+        if KeyboardSpec.isCmdASelectAll(
+            char: event.charactersIgnoringModifiers ?? "",
+            commandDown: event.modifierFlags.contains(.command),
+            isTextInputActive: self.model.textInputActive) {
             if let editor = self.window?.fieldEditor(false, for: self.window?.contentView) as? NSTextView {
                 editor.selectAll(nil)
             }

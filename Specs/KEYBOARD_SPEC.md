@@ -56,6 +56,30 @@ libre: debe activar el modo texto (igual que el click sobre "Type something").
 Se reusa `ContentState.onOptionTap` con el título de la opción resaltada →
 `.enterTextMode` abre el input; `.selectOption(n)` envía el número.
 
+## Cmd+A en modo texto = select all (v6c → v7)
+
+En modo texto el usuario espera `Cmd+A` para seleccionar todo lo escrito. La app
+es `.accessory` sin menú Edit → el key equivalent NO se enruta por el sistema:
+el monitor de teclado lo resuelve a mano (`fieldEditor.selectAll`).
+
+Es la ÚNICA excepción al "modo texto → todas las teclas pasan al campo": si el
+Evento es Cmd+A se consumen y se selecciona todo; cualquier otra tecla (incluidas
+Cmd+Otras) pasa al TextField sin interferir.
+
+Lógica pura (testeable, `KeyboardSpec.isCmdASelectAll`):
+
+```
+isCmdASelectAll(char, commandDown, isTextInputActive)
+  - !isTextInputActive      → false   (no robar teclas)
+  - !commandDown            → false   (no es el atajo)
+  - char.lowercased() == "a"→ true    (select all)
+  - otro char / vacío       → false
+```
+
+v7 (limpieza del edge): la decisión usa el CHAR lógico (`charactersIgnoringModifiers`)
+en vez del `keyCode` físico 0 — el keyCode 0 solo es `A` en layout ANSI y se
+rompe en Dvorak / layouts con otras teclas en esa posición física. `Cmd+Shift+A`
+también es select-all (la `A` lógica no distingue mayúscula → misma semántica).
 
 ## Highlight vertical de opciones (navegación ↑↓)
 

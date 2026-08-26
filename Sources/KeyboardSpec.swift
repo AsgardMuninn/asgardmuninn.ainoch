@@ -66,6 +66,18 @@ enum KeyboardSpec {
         return .none
     }
 
+    /// KEYBOARD_SPEC v7 (limpieza Cmd+A): decide si un KeyDown es el atajo
+    /// "select all" sobre el input de texto libre. Solo aplica en modo texto
+    /// (el resto de teclas deben pasar al TextField). Se compara el CHAR lógico
+    /// (charactersIgnoringModifiers) y no el keyCode físico: el keyCode 0 solo
+    /// coincide con 'A' en teclados ANSI y se rompe en otros layouts (Dvorak,
+    /// ISO con caracteres extra). La mayúscula (Cmd+Shift+A) también es
+    /// select-all — ambas comparten la semántica del atajo.
+    static func isCmdASelectAll(char: String, commandDown: Bool, isTextInputActive: Bool) -> Bool {
+        guard isTextInputActive, commandDown else { return false }
+        return char.lowercased() == "a"
+    }
+
     // --- Highlight vertical (KEYBOARD_SPEC) ---
 
     /// Mueve el highlight hacia ARRIBA (clamp a 1). current 1..N.
