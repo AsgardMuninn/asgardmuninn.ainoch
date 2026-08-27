@@ -392,10 +392,6 @@ struct NotchContentView: View {
         // Hover lo maneja el mouse monitor global (isInsideIsland).
     }
 
-    private func truncate(_ s: String, to n: Int) -> String {
-        s.count <= n ? s : String(s.prefix(n)) + "…"
-    }
-
     /// CONTENT_SPEC requisito 4: submit del texto libre. Recibe el texto desde
     /// FreeTextInput (estado local). Solo envía si no está vacío; cierra el modo.
     private func submitFreeText(_ text: String) {
