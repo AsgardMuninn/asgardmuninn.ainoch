@@ -327,7 +327,11 @@ struct NotchContentView: View {
             // transforma fluidamente (con withAnimation + .transition) — no salta
             // entre dos layouts. Al tocar "Type something" las opciones se ocultan y
             // un campo de texto expande en su lugar.
-            VStack(spacing: 8) {
+            // TEXTFIT_SPEC: el presupuesto de líneas se decide ANTES de renderizar
+            // para que el contenido nunca exceda la altura fija de la isla.
+            let fit = OptionTextFit.plan(optionCount: parsed.options.count,
+                                         questionLines: OptionTextFit.questionLines(parsed.question))
+            VStack(spacing: fit.rowGap) {
                 if model.textInputActive {
                     // SOUND_SPEC v5: estado del texto LOCAL a la sub-vista →
                     // teclear no re-renderiza toda la isla (antes: lag por @Published).
@@ -340,6 +344,8 @@ struct NotchContentView: View {
                             index: i + 1,
                             title: opt.title,
                             desc: opt.desc,
+                            descLineLimit: fit.descLineLimit,
+                            rowVPad: fit.rowVPad,
                             isHovered: model.hoverKeys.contains(parsed.pane + "#\(i + 1)"),
                             // KEYBOARD_SPEC: highlight de teclado (↑↓)
                             isHighlighted: model.keyboardSelection == i + 1
@@ -414,6 +420,8 @@ struct OptionRowView: View {
     let index: Int
     let title: String
     let desc: String
+    let descLineLimit: Int     // TEXTFIT_SPEC: 0 = sin descripción
+    let rowVPad: CGFloat       // 10 normal / 6 compacto (según el presupuesto)
     let isHovered: Bool
     let isHighlighted: Bool    // KEYBOARD_SPEC: highlight ↑↓ (patrón Raycast)
     let onEnter: () -> Void
@@ -426,16 +434,16 @@ struct OptionRowView: View {
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundColor(.white)
                 .lineLimit(1)
-            if !desc.isEmpty {
+            if !desc.isEmpty && descLineLimit > 0 {
                 Text(desc)
                     .font(.system(size: 11.5))
                     .foregroundColor(Color.white.opacity(0.78))
-                    .lineLimit(3)
+                    .lineLimit(descLineLimit)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+        .padding(.vertical, rowVPad)
         .background(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .fill(backgroundColor)

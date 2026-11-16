@@ -38,7 +38,7 @@ simultaneous questions.
 ```bash
 swiftc -O Sources/main.swift Sources/views.swift Sources/IslandGeometry.swift \
   Sources/ContentState.swift Sources/SoundSpec.swift Sources/StackLogic.swift \
-  Sources/KeyboardSpec.swift -o ainoch
+  Sources/TextFit.swift Sources/KeyboardSpec.swift -o ainoch
 ```
 
 Optionally run as a LaunchAgent (see `com.ainoch.notch.plist`).
