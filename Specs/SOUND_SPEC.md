@@ -219,3 +219,47 @@ Tras v6, en el input "no funcionan los atajos... tampoco el escape".
 2. En la vista: `.onChange(of: model.textInputActive)` activa `textFieldFocused`
    cuando se abre el input (cubre Enter Y click) → el campo es first responder
    real → Cmd+A y flechas funcionan.
+
+## Optimización v7 — anti-ráfaga (no spamear en ráfagas) + distinguibilidad por tipo
+
+**Problema medido**: `.newQuestion` se dispara desde el poll de eventos
+(`views.swift` → `playFeedback(.newQuestion)` cuando `StackLogic.hasNewQuestion`).
+Si varias preguntas nuevas llegan en segundos (varios panes/agentes), el poll
+reproduce un ping por detección → campanadas solapadas dentro de la misma
+ventana de 70ms, que se perciben como ruido y no como aviso. HIG: "avoid
+overusing haptics" — el feedback debe ser escaso y causal.
+
+**Soluciones descartadas**: dedupe por pane (ya existe en `StackLogic`, pero no
+evita el spam entre panes distintos); bajar el volumen (no resuelve el solape);
+silencio total en preguntas (pierde el aviso de evento discreto, que sí aporta).
+
+**Cambio (lógica pura, sin AppKit)**: `FeedbackThrottle` en `SoundSpec.swift`.
+
+| Regla | Valor | Por qué |
+|---|---|---|
+| Gap mínimo entre pings del MISMO evento | 500 ms | dos pings de 70ms separados <500ms suenan como un "doble ring" confuso, no como dos avisos |
+| Ventana de ráfaga | 3 s | cubre una ráfaga de preguntas de varios panes |
+| Techo por ventana | 2 pings | una ráfaga sostenida avisa sin ametrallar |
+| Eventos limitados | solo `.newQuestion` | es el único disparado por el poll, no por el usuario |
+
+Las acciones deliberadas (`.selectOption`, `.submitText`, `.dismiss`) **nunca**
+se suprimen: son consecuencia directa de un click/Enter del usuario y deben
+sonar siempre (causalidad explícita, HIG).
+
+```
+FeedbackThrottle.shouldPlay(event, at: monotonicTime) -> Bool   // puro, testeable
+```
+
+Integración: `playFeedback` consulta el gate con
+`ProcessInfo.processInfo.systemUptime` (reloj monótono, no wall clock) y, si el
+evento se filtra, deja el log `AINOCH TIMING play=<event> skipped=burst` (medible).
+
+**Distinguibilidad por tipo (medida, no supuesta)**: pregunta (`900→1320Hz`,
+sube), hecho (`1600Hz` constante), descartar (`500→400Hz`, baja). Test 11 lo
+verifica con zero-crossings (la 2ª mitad de `.newQuestion` cruza por cero más
+veces que la 1ª) además de comprobar que los 3 WAV son distintos byte a byte.
+
+**Verificación**: `Tests/test_sound_main.swift` 11/11 (7 previos + 4 nuevos:
+ráfaga→1 ping, techo por ventana, acciones de usuario nunca suprimidas,
+distinguibilidad). Regresión completa 66/66 y build de 10 fuentes verde en el
+Mac remoto (Swift 6.4.2 / macOS 26.6.2).

@@ -88,6 +88,38 @@ enum SoundSpec {
     }
 }
 
+/// SOUND_SPEC v7: gate anti-ráfaga. Los eventos DISCRETOS que NO inicia el
+/// usuario (p.ej. `.newQuestion`, disparado por el poll de eventos) pueden
+/// llegar en ráfaga — varias preguntas nuevas en pocos segundos. Reproducir
+/// todas = campanada solapada (ruido, "spam"), que Apple HIG desaconseja
+/// ("avoid overusing haptics"). Este gate es lógica PURA (sin AppKit) y
+/// decide si un evento merece sonar; las acciones deliberadas del usuario
+/// (.selectOption/.submitText/.dismiss) NUNCA se suprimen.
+struct FeedbackThrottle {
+    /// Separación mínima entre dos pings del MISMO evento (s). 500ms: por
+    /// debajo de eso dos pings de 70ms se perciben como un solo "doble ring"
+    /// confuso, no como dos avisos.
+    static let minGap: Double = 0.5
+    /// Ventana deslizante de ráfaga (s).
+    static let window: Double = 3.0
+    /// Techo de pings por ventana para eventos de ráfaga.
+    static let maxInWindow: Int = 2
+    /// Eventos limitados (no iniciados por el usuario).
+    static let burstLimited: Set<FeedbackEvent> = [.newQuestion]
+
+    private var played: [Double] = []   // timestamps de pings permitidos
+
+    /// `t` = reloj monótono del llamador (`ProcessInfo.systemUptime`).
+    mutating func shouldPlay(_ event: FeedbackEvent, at t: Double) -> Bool {
+        guard Self.burstLimited.contains(event) else { return true }
+        played.removeAll { t - $0 >= Self.window }      // podar fuera de ventana
+        if let last = played.last, t - last < Self.minGap { return false }
+        if played.count >= Self.maxInWindow { return false }
+        played.append(t)
+        return true
+    }
+}
+
 /// SOUND_SPEC v3: cache de generación ÚNICA. Pre-genera cada WAV una sola vez
 /// (fuera del hot path) para que el primer play no congele la UI (el init del
 /// audio engine + síntesis NO corre en el momento del click).

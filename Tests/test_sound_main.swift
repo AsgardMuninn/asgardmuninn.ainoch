@@ -75,4 +75,64 @@ for e in all {
     assert(cache.feedback(for: e) != nil, "\(e) cacheado tras pre-cargar")
 }
 
-print("PASS: sound-spec 7/7")
+// ── SOUND_SPEC v7: gate anti-ráfaga + distinguibilidad por tipo ─────────────
+
+// TEST 8: una ráfaga de 4 pings de pregunta en 450ms dispara UN solo sonido
+// (antes: 4 campanadas solapadas = ruido). Fuera del gap mínimo vuelve a sonar.
+var gate = FeedbackThrottle()
+var fired = 0
+for i in 0..<4 {
+    if gate.shouldPlay(.newQuestion, at: 10.0 + Double(i) * 0.15) { fired += 1 }
+}
+assert(fired == 1, "ráfaga de 4 newQuestion en 450ms → 1 ping (got \(fired))")
+assert(gate.shouldPlay(.newQuestion, at: 12.0), "fuera de la ventana → vuelve a sonar")
+
+// TEST 9: techo por ventana — ráfaga sostenida (10 en 2.7s) ≤ 2 pings.
+var gate2 = FeedbackThrottle()
+var capped = 0
+for i in 0..<10 {
+    if gate2.shouldPlay(.newQuestion, at: 100.0 + Double(i) * 0.3) { capped += 1 }
+}
+assert(capped <= 2, "ráfaga sostenida → techo 2 por ventana (got \(capped))")
+assert(capped >= 1, "pero al menos uno suena (got \(capped))")
+
+// TEST 10: las acciones DELIBERADAS del usuario nunca se suprimen.
+var gate3 = FeedbackThrottle()
+for i in 0..<5 {
+    assert(gate3.shouldPlay(.selectOption, at: 200.0 + Double(i) * 0.01),
+           "selectOption \(i) no se suprime (acción del usuario)")
+    assert(gate3.shouldPlay(.submitText, at: 200.0 + Double(i) * 0.01),
+           "submitText \(i) no se suprime (acción del usuario)")
+}
+
+// TEST 11: distinguible por tipo — pregunta / hecho / descartar tienen firma
+// acústica distinta, y la pregunta SUBE de pitch (zero-crossings crecientes).
+func pcm(_ data: Data) -> [Int16] {
+    let bytes = [UInt8](data.dropFirst(44))
+    var out = [Int16](); out.reserveCapacity(bytes.count / 2)
+    for i in 0..<(bytes.count / 2) {
+        out.append(Int16(truncatingIfNeeded: Int(bytes[i * 2]) | Int(bytes[i * 2 + 1]) << 8))
+    }
+    return out
+}
+func crossings(_ s: ArraySlice<Int16>) -> Int {
+    var c = 0
+    var prev = s.first ?? 0
+    for v in s.dropFirst() {
+        if (prev < 0 && v >= 0) || (prev >= 0 && v < 0) { c += 1 }
+        prev = v
+    }
+    return c
+}
+let q = SoundSpec.makeFeedback(.newQuestion).wav
+let d = SoundSpec.makeFeedback(.submitText).wav
+let e = SoundSpec.makeFeedback(.dismiss).wav
+assert(q != d && d != e && q != e, "3 tipos → 3 WAVs distintos")
+let qs = pcm(q)
+let half = qs.count / 2
+let firstHalf = crossings(qs[0..<half])
+let secondHalf = crossings(qs[half..<qs.count])
+assert(secondHalf > firstHalf,
+       "pregunta sube de pitch (crossings 1ª mitad \(firstHalf) < 2ª \(secondHalf))")
+
+print("PASS: sound-spec 11/11")

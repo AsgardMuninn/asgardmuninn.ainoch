@@ -562,6 +562,8 @@ private var keyboardMon: Any?   // KEYBOARD_SPEC: local monitor keyDown (retenid
 // SOUND_SPEC v3: cache de sonidos pre-generado (evita el congelamiento del
 // primer play — la síntesis + init de NSSound NO corren en el hot path).
 private let feedback = FeedbackCache()
+// SOUND_SPEC v7: gate anti-ráfaga (solo eventos no iniciados por el usuario).
+private var throttle = FeedbackThrottle()
 private var sounds: [FeedbackEvent: NSSound] = [:]   // NSSound pre-construidos
 
 static let herdrBin: String = {
@@ -837,6 +839,12 @@ func applicationDidFinishLaunching(_ notification: Notification) {
     // el main thread como .now — medido 67ms → objetivo <5ms).
     private func playFeedback(_ event: FeedbackEvent) {
         let t0 = CFAbsoluteTimeGetCurrent()
+        // SOUND_SPEC v7: los eventos de ráfaga (.newQuestion) se filtran; las
+        // acciones deliberadas del usuario nunca se suprimen.
+        guard throttle.shouldPlay(event, at: ProcessInfo.processInfo.systemUptime) else {
+            NSLog("AINOCH TIMING play=%@ skipped=burst", "\(event)")
+            return
+        }
         sounds[event]?.play()
         let pattern: NSHapticFeedbackManager.FeedbackPattern =
             (feedback.feedback(for: event)?.haptic ?? .generic) == .levelChange ? .levelChange : .generic
