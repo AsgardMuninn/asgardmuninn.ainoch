@@ -1,0 +1,19 @@
+Ainoch.app
+Ainoch.app/Contents
+Ainoch.app/Contents/Info.plist
+Ainoch.app/Contents/MacOS
+Ainoch.app/Contents/MacOS/ainoch
+Ainoch.app/Contents/Resources
+Ainoch.app/Contents/Resources/AppIcon.icns
+Ainoch.app/Contents/_CodeSignature
+Ainoch.app/Contents/_CodeSignature/CodeResources
+---
+  pixelWidth: 1024
+  format: icns
+  ok  estructura Contents/{MacOS,Resources,Info.plist}
+  ok  plutil -lint
+  ok  10 claves de Info.plist
+  ok  .icns legible (pixelWidth 1024)
+  ok  iconutil round-trip: 10 representaciones
+  ok  codesign verificado (Signature=adhoc)
+PASS: /tmp/ainoch-bundle/Ainoch.app

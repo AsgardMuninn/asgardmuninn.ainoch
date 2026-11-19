@@ -70,6 +70,20 @@ python3 Scripts/demo_reader2.py 8900   # serves 2 fake questions
 ./ainoch
 ```
 
+## Package as an .app
+
+The binary can also ship as a self-contained bundle (icon included, no external
+assets — the PNG is drawn with CoreGraphics):
+
+```bash
+Scripts/build_app_bundle.sh /tmp/ainoch-bundle   # builds + signs ad-hoc + verifies
+Tools/verify_app_bundle.sh /tmp/ainoch-bundle/Ainoch.app
+```
+
+`verify_app_bundle.sh` is the gate: structure, `plutil -lint`, the 10 Info.plist
+keys, a 10-representation `.icns` (iconutil round-trip) and `codesign --verify`.
+Contract: `Specs/APPBUNDLE_SPEC.md`.
+
 ## Event reader contract
 
 The app polls `event.json` expecting:
@@ -94,6 +108,9 @@ Pure TDD suites (no AppKit) — run with `swiftc <Module>.swift Tests/main.swift
 | text-fit | `Tests/test_textfit_main.swift` + `TextFit.swift` + `IslandGeometry.swift` | option-row text budget |
 | snapshot-plan | `Tests/test_snapshotplan_main.swift` + `SnapshotPlan.swift` | snapshot CLI contract |
 
+Bundle packaging is verified by `Tools/verify_app_bundle.sh` (shell gate, not a
+Swift suite): run it before and after `Scripts/build_app_bundle.sh`.
+
 Each suite is self-contained; build each with its `Tests/main.swift` renamed to
 `main.swift` (Swift requires top-level code in a file named `main.swift`).
 
@@ -105,6 +122,7 @@ Each suite is self-contained; build each with its `Tests/main.swift` renamed to
 - `STACK_SPEC.md` — multi-question UX (n of N, dismiss moves to end).
 - `KEYBOARD_SPEC.md` — keyboard navigation + ESC back/dismiss.
 - `CONTENT_SPEC.md` — free-text mode lifecycle.
+- `APPBUNDLE_SPEC.md` — `.app` layout, Info.plist keys, code-drawn icon, signing.
 
 ## License
 
