@@ -1,0 +1,14 @@
+{
+  "events": [
+    {
+      "agent": "pi",
+      "pane_id": "pane:demo",
+      "status": "blocked",
+      "question": "Implementar caché de respuestas del reader\ncontext: ~/projects/demo\n❯ 1. Escribir el test primero (TDD)\n     Falla primero, después se implementa.\n  2. Implementar directo\n     Más rápido, sin red de seguridad.\n  3. Refactorizar el reader antes\n     Reduce el riesgo de romper contratos.\n  4. Pedir más contexto\n     Antes de tocar código.\n  5. Type something.\nEnter to select · ↑/↓ to navigate · esc to cancel",
+      "context": {
+        "cwd": "~/projects/demo",
+        "terminal_title": "herdr — demo"
+      }
+    }
+  ]
+}

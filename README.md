@@ -43,6 +43,26 @@ swiftc -O Sources/main.swift Sources/views.swift Sources/IslandGeometry.swift \
 
 Optionally run as a LaunchAgent (see `com.ainoch.notch.plist`).
 
+## Visual evidence (snapshot tool)
+
+`Tools/snapshot.swift` renders the REAL island layout offscreen (same
+`NotchContentView` + `ImageRenderer`, 560x380 host) from an `event.json`, so any
+UI change can be demonstrated without opening the app or touching production:
+
+```bash
+swiftc -O Sources/views.swift Sources/IslandGeometry.swift Sources/ContentState.swift \
+  Sources/SoundSpec.swift Sources/StackLogic.swift Sources/TextFit.swift \
+  Sources/KeyboardSpec.swift Sources/SnapshotPlan.swift Tools/snapshot.swift \
+  -o ainoch-snapshot
+
+./ainoch-snapshot --events Tools/demo_event.json \
+  --out docs/pr-evidence/<change> --highlight 2
+```
+
+It writes deterministic PNGs (`compact@2x.png`, `expanded@2x.png`,
+`expanded-highlight<N>@2x.png`) — identical input yields identical bytes, so
+evidence can be diffed. Contract: `Specs/SNAPSHOT_SPEC.md`.
+
 ## Run with a demo reader
 
 ```bash
@@ -71,6 +91,8 @@ Pure TDD suites (no AppKit) — run with `swiftc <Module>.swift Tests/main.swift
 | sound-spec | `Tests/test_sound_main.swift` + `SoundSpec.swift` | WAV gen, feedback cache |
 | stack-logic | `Tests/test_stack_main.swift` + `StackLogic.swift` | multi-question stack |
 | keyboard-spec | `Tests/test_keyboard_main.swift` + `KeyboardSpec.swift` | key resolution |
+| text-fit | `Tests/test_textfit_main.swift` + `TextFit.swift` + `IslandGeometry.swift` | option-row text budget |
+| snapshot-plan | `Tests/test_snapshotplan_main.swift` + `SnapshotPlan.swift` | snapshot CLI contract |
 
 Each suite is self-contained; build each with its `Tests/main.swift` renamed to
 `main.swift` (Swift requires top-level code in a file named `main.swift`).
